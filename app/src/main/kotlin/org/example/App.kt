@@ -2,8 +2,7 @@ package org.example
 
 import java.io.File
 import kotlin.system.exitProcess
-import org.example.parser.ParseResult
-import org.example.parser.Parser
+import org.example.interpreter.*
 
 fun main(args: Array<String>) {
   val filePath = args.firstOrNull()
@@ -26,11 +25,11 @@ fun main(args: Array<String>) {
             }
           }
 
-  val parser = Parser(file)
-  val res = parser.parse()
+  val interpreter = Interpreter(file)
+  val res = interpreter.interpret()
 
   when (res) {
-    is ParseResult.Success -> println("Parsed: ${res.expr.prettyPrint()}")
-    is ParseResult.Failure -> println("Failed to parse: ${res.message}")
+    is InterpretResult.Success -> println("result: ${res.value}")
+    is InterpretResult.Failure -> println("Failed to parse: ${res.message}")
   }
 }
