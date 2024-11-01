@@ -1,6 +1,7 @@
 package org.example.lexer
 
 enum class TokenType {
+	ERROR,
   EOF,
   IDENTIFIER,
   NUMBER,

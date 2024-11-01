@@ -1,0 +1,117 @@
+package org.example
+
+import java.io.File
+import kotlin.system.exitProcess
+import org.example.lexer.*
+
+sealed interface Expr {
+  data class IntLiteral(val value: Int) : Expr
+  data class Identifier(val name: String) : Expr
+  data class VoidLiteral(val value: Unit) : Expr
+  enum class BinaryOp {
+    ADD,
+    SUB,
+    MUL,
+    DIV
+  }
+  data class Binary(val left: Expr, val op: BinaryOp, val right: Expr) : Expr
+}
+
+sealed interface ParseResult {
+  data class Success(val expr: Expr) : ParseResult
+  data class Failure(val message: String) : ParseResult
+}
+
+class Parser(val lexer: Lexer) {
+  private var peek: Token = lexer.next()
+
+  fun parse(): ParseResult {
+    if (peek.type == TokenType.EOF) {
+      return ParseResult.Success(Expr.VoidLiteral(Unit))
+    }
+
+    return parseExpr()
+  }
+
+  private fun parseExpr(): ParseResult {
+    return parseAdditive()
+  }
+
+  private fun parseAdditive(): ParseResult {
+    var lhs =
+            when (val lhs = parsePrimary()) {
+              is ParseResult.Success -> lhs.expr
+              is ParseResult.Failure -> return lhs
+            }
+    while (peek.type == TokenType.PLUS || peek.type == TokenType.MINUS) {
+      val op = when (consume().type) {
+				TokenType.PLUS -> Expr.BinaryOp.ADD
+				TokenType.MINUS -> Expr.BinaryOp.SUB
+				else -> return failure("unexpected token: $peek")
+			}
+
+      val rhs = parsePrimary()
+      when (rhs) {
+        is ParseResult.Success -> lhs = Expr.Binary(lhs, op, rhs.expr)
+        is ParseResult.Failure -> return rhs
+      }
+    }
+    return ParseResult.Success(lhs)
+  }
+
+
+  private fun parsePrimary(): ParseResult {
+    return when (peek.type) {
+      TokenType.NUMBER -> {
+        val value = consume().value.toInt()
+        success(Expr.IntLiteral(value))
+      }
+      TokenType.IDENTIFIER -> {
+        val name = consume().value
+        success(Expr.Identifier(name))
+      }
+      else -> {
+        failure("unexpected token: $peek")
+      }
+    }
+  }
+
+  private fun consume(): Token {
+    val token = peek
+    peek = lexer.next()
+    return token
+  }
+
+  private fun success(expr: Expr): ParseResult = ParseResult.Success(expr)
+  private fun failure(message: String): ParseResult = ParseResult.Failure(message)
+}
+
+fun main(args: Array<String>) {
+  val filePath = args.firstOrNull()
+  if (filePath == null) {
+    println("Usage: App <file>")
+    return
+  }
+
+  val file =
+          File(filePath).apply {
+            when {
+              !isFile -> {
+                println("Not a file: $filePath!")
+                exitProcess(1)
+              }
+              !exists() -> {
+                println("File not found: $filePath!")
+                exitProcess(1)
+              }
+            }
+          }
+
+  val lexer = Lexer(file)
+  val parser = Parser(lexer)
+  val expr = parser.parse()
+  when (expr) {
+    is ParseResult.Success -> println("Parsed: $expr")
+    is ParseResult.Failure -> println("Failed to parse: ${expr.message}")
+  }
+}

@@ -1,17 +1,36 @@
 package org.example
 
 import java.io.File
-import org.example.lexer.Lexer
+import kotlin.system.exitProcess
+import org.example.parser.ParseResult
+import org.example.parser.Parser
 
 fun main(args: Array<String>) {
-  val file =
-          args.getOrNull(0)?.let { path -> File(path) }
-                  ?: run {
-                    println("No file path provided")
-                    kotlin.system.exitProcess(1)
-                  }
+  val filePath = args.firstOrNull()
+  if (filePath == null) {
+    println("Usage: App <file>")
+    return
+  }
 
-  for (token in Lexer(file)) {
-    println(token)
+  val file =
+          File(filePath).apply {
+            when {
+              !isFile -> {
+                println("Not a file: $filePath!")
+                exitProcess(1)
+              }
+              !exists() -> {
+                println("File not found: $filePath!")
+                exitProcess(1)
+              }
+            }
+          }
+
+  val parser = Parser(file)
+  val res = parser.parse()
+
+  when (res) {
+    is ParseResult.Success -> println("Parsed: ${res.expr.prettyPrint()}")
+    is ParseResult.Failure -> println("Failed to parse: ${res.message}")
   }
 }

@@ -3,7 +3,7 @@ package org.example.lexer
 import java.io.File
 
 class Lexer(file: File) : Iterator<Token> {
-  private var contents = file.readText()
+  private val contents = file.readText()
   private var i = 0
   private var line = 1
   private var column = 1
@@ -19,27 +19,25 @@ class Lexer(file: File) : Iterator<Token> {
     skipWhitespace()
 
     val ch = peekCh() ?: return eof()
-    when (ch) {
-      in '0'..'9' -> return number()
-      in 'a'..'z', in 'A'..'Z', '_' -> return identifier()
-      '"', '\'' -> return string(nextCh()!!)
-      '+' -> return tok(TokenType.PLUS, "+")
-      '-' -> return tok(TokenType.MINUS, "-")
-      '*' -> return tok(TokenType.STAR, "*")
+    return when (ch) {
+      in '0'..'9' -> number()
+      in 'a'..'z', in 'A'..'Z', '_' -> identifier()
+      '"', '\'' -> string(nextCh()!!)
+      '+' -> tok(TokenType.PLUS, "+")
+      '-' -> tok(TokenType.MINUS, "-")
+      '*' -> tok(TokenType.STAR, "*")
       '/' -> {
         nextCh()
         if (peekCh() == '/') {
-          return comment()
+          comment()
         }
-        return tok(TokenType.SLASH, "/")
+        tok(TokenType.SLASH, "/")
       }
-      '%' -> return tok(TokenType.PERCENT, "%")
-      '(' -> return tok(TokenType.LPAREN, "(")
-      ')' -> return tok(TokenType.RPAREN, ")")
+      '%' -> tok(TokenType.PERCENT, "%")
+      '(' -> tok(TokenType.LPAREN, "(")
+      ')' -> tok(TokenType.RPAREN, ")")
+      else -> error("unexpected character: $ch")
     }
-
-    done = true
-    return eof()
   }
 
   private fun number(): Token {
@@ -56,13 +54,13 @@ class Lexer(file: File) : Iterator<Token> {
       nextCh()
     }
     val value = contents.substring(start, i)
-    return tok(
-            when (value) {
-              "if", "else", "while", "for", "return" -> TokenType.KEYWORD
-              else -> TokenType.IDENTIFIER
-            },
-            value,
-    )
+		return tok(
+			when (value) {
+				"if", "else", "while", "for", "return" -> TokenType.KEYWORD
+				else -> TokenType.IDENTIFIER
+			},
+			value,
+		)
   }
 
   private fun string(quote: Char): Token {
@@ -102,6 +100,11 @@ class Lexer(file: File) : Iterator<Token> {
     }
     i++
     return ch
+  }
+
+  private fun error(message: String): Token {
+    done = true
+    return tok(TokenType.ERROR, message)
   }
 
   private fun eof(): Token {
