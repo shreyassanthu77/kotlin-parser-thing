@@ -9,6 +9,7 @@ sealed interface InterpretResult {
 }
 
 class Interpreter(private val parser: Parser) {
+  private val variableMap = mutableMapOf<String, Int>()
   constructor(file: File) : this(Parser(file))
 
   fun interpret(): InterpretResult {
@@ -19,10 +20,25 @@ class Interpreter(private val parser: Parser) {
     }
   }
 
+  fun set(name: String, value: Int) {
+    variableMap.set(name, value)
+  }
+
   private fun interpretExpr(expr: Expr): InterpretResult {
     return when (expr) {
       is Expr.IntLiteral -> InterpretResult.Success(expr.value)
-      is Expr.Identifier -> InterpretResult.Failure("unexpected identifier: ${expr.name}")
+      is Expr.Identifier -> {
+        val value = variableMap[expr.name]
+        if (value == null) {
+          println("Enter value for ${expr.name}: ")
+          val read =
+                  readLine()?.toIntOrNull()
+                          ?: return InterpretResult.Failure("variable ${expr.name} not found")
+          InterpretResult.Success(read)
+        } else {
+          InterpretResult.Success(value)
+        }
+      }
       is Expr.VoidLiteral -> InterpretResult.Failure("unexpected void literal")
       is Expr.Binary -> {
         val lhs = interpretExpr(expr.left)

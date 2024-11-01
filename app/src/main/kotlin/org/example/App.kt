@@ -26,6 +26,9 @@ fun main(args: Array<String>) {
           }
 
   val interpreter = Interpreter(file)
+  // interpreter.set("a", 10)
+  // interpreter.set("b", 20)
+  // interpreter.set("c", 11)
   val res = interpreter.interpret()
 
   when (res) {
